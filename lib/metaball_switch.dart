@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 
@@ -8,10 +9,10 @@ class MetaballSwitch extends StatefulWidget {
   _MetaballSwitchState createState() => _MetaballSwitchState();
 }
 
-class _MetaballSwitchState extends State<MetaballSwitch> with SingleTickerProviderStateMixin {
+class _MetaballSwitchState extends State<MetaballSwitch>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-
-  late FragmentProgram _fragmentProgram;
+  late Future<FragmentProgram> _fragmentProgramFuture;
 
   late Animation<double> leftCircleXAnimation;
   late Animation<double> rightCircleXAnimation;
@@ -29,15 +30,10 @@ class _MetaballSwitchState extends State<MetaballSwitch> with SingleTickerProvid
 
   bool isChecked = false;
 
-  Future<void> _initFragmentProgram() async {
-    _fragmentProgram = await FragmentProgram.fromAsset('assets/shaders/metaball_shader.frag');
-    setState(() {});
-  }
-
   @override
   void initState() {
     super.initState();
-    _initFragmentProgram();
+    _fragmentProgramFuture = _initFragmentProgram();
     _controller = AnimationController(
       vsync: this,
       duration: Duration(milliseconds: 400),
@@ -83,7 +79,10 @@ class _MetaballSwitchState extends State<MetaballSwitch> with SingleTickerProvid
       ),
     );
 
-    colorAnimation = ColorTween(begin: toggleBodyColor, end: toggyBodySecondColor,).animate(_controller);
+    colorAnimation = ColorTween(
+      begin: toggleBodyColor,
+      end: toggyBodySecondColor,
+    ).animate(_controller);
 
     _controller.addListener(() {
       setState(() {});
@@ -94,6 +93,10 @@ class _MetaballSwitchState extends State<MetaballSwitch> with SingleTickerProvid
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  Future<FragmentProgram> _initFragmentProgram() async {
+    return FragmentProgram.fromAsset('assets/shaders/metaball_shader.frag');
   }
 
   void _animate() {
@@ -109,29 +112,45 @@ class _MetaballSwitchState extends State<MetaballSwitch> with SingleTickerProvid
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF363C3D),
-      body: Center(
-        child: GestureDetector(
-          onTap: () {
-            _animate();
-          },
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CustomPaint(
-                size: const Size(208, 90),
-                painter: MyCustomPainter(
-                  Colors.green,
-                  fragmentProgram: _fragmentProgram,
-                  leftCircleX: leftCircleXAnimation.value,
-                  rightCircleX: rightCircleXAnimation.value,
-                  leftCircleRadius: leftCircleRadiusAnimation.value,
-                  rightCircleRadius: rightCircleRadiusAnimation.value,
-                  toggleBodyColor: colorAnimation.value!
-                ),
+      body: FutureBuilder<FragmentProgram>(
+        future: _fragmentProgramFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: SizedBox());
+          } else if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          } else {
+            final fragmentProgram = snapshot.data!;
+            return _buildSwitch(fragmentProgram);
+          }
+        },
+      ),
+    );
+  }
+
+  Widget _buildSwitch(FragmentProgram fragmentProgram) {
+    return Center(
+      child: GestureDetector(
+        onTap: () {
+          _animate();
+        },
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CustomPaint(
+              size: const Size(208, 90),
+              painter: MyCustomPainter(
+                Colors.green,
+                fragmentProgram: fragmentProgram,
+                leftCircleX: leftCircleXAnimation.value,
+                rightCircleX: rightCircleXAnimation.value,
+                leftCircleRadius: leftCircleRadiusAnimation.value,
+                rightCircleRadius: rightCircleRadiusAnimation.value,
+                toggleBodyColor: colorAnimation.value!,
               ),
-              SizedBox(height: 20),
-            ],
-          ),
+            ),
+            SizedBox(height: 20),
+          ],
         ),
       ),
     );
@@ -147,7 +166,7 @@ class MyCustomPainter extends CustomPainter {
     required this.leftCircleRadius,
     required this.rightCircleRadius,
     required this.toggleBodyColor,
-  }): shader = fragmentProgram.fragmentShader();  // Register animation controller for repaint
+  }) : shader = fragmentProgram.fragmentShader(); // Register animation controller for repaint
 
   final Color color;
   final FragmentProgram fragmentProgram;

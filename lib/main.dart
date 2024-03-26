@@ -11,11 +11,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp( // Wrap with MaterialApp
-      title: 'Toggle Switch Example',
       home: Scaffold(
-        appBar: AppBar(
-          title: Text('Toggle Switch Example'),
-        ),
         body: const Center(
           child: MetaballSwitch(),
         ),
