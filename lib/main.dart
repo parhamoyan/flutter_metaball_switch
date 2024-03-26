@@ -113,7 +113,7 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
     } else {
       _controller.forward();
     }
-    isChecked = !isChecked; // Toggle isChecked value for the next tap
+    isChecked = !isChecked;
   }
 
   @override
@@ -123,7 +123,7 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
       body: Center(
         child: GestureDetector(
           onTap: () {
-            _animate(); // Trigger animation when clicked
+            _animate();
           },
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
